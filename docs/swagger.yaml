@@ -1,0 +1,354 @@
+openapi: '3.0.3'
+info:
+  description: 'API для управления библиотекой песен.'
+  version: '1.0.0'
+  title: 'Song Library API'
+servers:
+  - url: 'http://localhost:8000'
+    description: 'Локальный сервер'
+tags:
+  - name: 'CRUD'
+    description: 'Операции создания, обновления и удаления песен.'
+  - name: 'Получение с фильтрацией'
+    description: 'Операции получения данных с применением фильтров и пагинации.'
+paths:
+  /songs/add:
+    post:
+      tags:
+        - 'CRUD'
+      summary: 'Добавить новую песню'
+      description: 'Добавляет новую песню в библиотеку.'
+      requestBody:
+        description: 'Данные для добавления песни'
+        required: true
+        content:
+          application/json:
+            schema:
+              type: 'object'
+              required:
+                - 'group'
+                - 'song'
+              properties:
+                group:
+                  type: 'string'
+                song:
+                  type: 'string'
+      responses:
+        '201':
+          description: 'Песня успешно добавлена'
+          content:
+            application/json:
+              schema:
+                type: 'object'
+                properties:
+                  id:
+                    type: 'integer'
+                    format: 'int32'
+        '400':
+          description: 'Недействительный запрос'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Группа не найдена'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Внутренняя ошибка сервера'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /songs/update:
+    put:
+      tags:
+        - 'CRUD'
+      summary: 'Обновить существующую песню'
+      description: 'Обновляет информацию о песне по предоставленным данным.'
+      requestBody:
+        description: 'Данные для обновления песни'
+        required: true
+        content:
+          application/json:
+            schema:
+              type: 'object'
+              required:
+                - 'id'
+                - 'group_id'
+                - 'song_name'
+              properties:
+                id:
+                  type: 'integer'
+                  format: 'int32'
+                group_id:
+                  type: 'integer'
+                  format: 'int32'
+                song_name:
+                  type: 'string'
+                text:
+                  type: 'string'
+                release_date:
+                  type: 'string'
+                  format: 'date'
+                link:
+                  type: 'string'
+      responses:
+        '204':
+          description: 'Песня успешно обновлена'
+        '400':
+          description: 'Недействительный запрос'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Внутренняя ошибка сервера'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /songs/{id}:
+    patch:
+      tags:
+        - 'CRUD'
+      summary: 'Частично обновить данные песни'
+      description: 'Позволяет обновить одно или несколько свойств песни по её ID.'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'ID песни для обновления'
+          required: true
+          schema:
+            type: 'integer'
+            format: 'int32'
+      requestBody:
+        description: 'Данные для частичного обновления песни'
+        required: true
+        content:
+          application/json:
+            schema:
+              type: 'object'
+              properties:
+                group_id:
+                  type: 'integer'
+                  format: 'int32'
+                song_name:
+                  type: 'string'
+                text:
+                  type: 'string'
+                release_date:
+                  type: 'string'
+                  format: 'date'
+                link:
+                  type: 'string'
+      responses:
+        '200':
+          description: 'Песня успешно обновлена'
+        '400':
+          description: 'Недействительный запрос'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Песня не найдена'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Внутренняя ошибка сервера'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /songs/delete:
+    delete:
+      tags:
+        - 'CRUD'
+      summary: 'Удалить песню'
+      description: 'Удаляет песню по заданному ID.'
+      parameters:
+        - name: 'id'
+          in: 'query'
+          description: 'ID песни для удаления'
+          required: true
+          schema:
+            type: 'integer'
+            format: 'int32'
+      responses:
+        '204':
+          description: 'Песня успешно удалена'
+        '400':
+          description: 'Недействительный запрос'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Песня не найдена'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Внутренняя ошибка сервера'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /songs/filter:
+    post:
+      tags:
+        - 'Получение с фильтрацией'
+      summary: 'Получить песни с фильтрацией и пагинацией'
+      description: 'Возвращает список песен с применением фильтров и пагинации по всем полям.'
+      requestBody:
+        description: 'Параметры фильтрации и пагинации'
+        required: true
+        content:
+          application/json:
+            schema:
+              type: 'object'
+              properties:
+                group:
+                  type: 'string'
+                song:
+                  type: 'string'
+                text:
+                  type: 'string'
+                release_date:
+                  type: 'string'
+                  format: 'date'
+                link:
+                  type: 'string'
+                limit:
+                  type: 'integer'
+                  format: 'int32'
+                  default: 10
+                offset:
+                  type: 'integer'
+                  format: 'int32'
+                  default: 0
+      responses:
+        '200':
+          description: 'Список песен успешно получен'
+          content:
+            application/json:
+              schema:
+                type: 'array'
+                items:
+                  $ref: '#/components/schemas/Song'
+        '400':
+          description: 'Недействительный запрос'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Внутренняя ошибка сервера'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /songs/{id}/verses:
+    get:
+      tags:
+        - 'Получение с фильтрацией'
+      summary: 'Получить куплеты песни с пагинацией'
+      description: 'Возвращает куплеты песни по заданному ID с возможностью пагинации.'
+      parameters:
+        - name: 'id'
+          in: 'path'
+          description: 'ID песни'
+          required: true
+          schema:
+            type: 'integer'
+            format: 'int32'
+        - name: 'limit'
+          in: 'query'
+          description: 'Количество куплетов для получения'
+          required: false
+          schema:
+            type: 'integer'
+            format: 'int32'
+            default: 10
+        - name: 'offset'
+          in: 'query'
+          description: 'Смещение для пагинации'
+          required: false
+          schema:
+            type: 'integer'
+            format: 'int32'
+            default: 0
+      responses:
+        '200':
+          description: 'Куплеты успешно получены'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerseResponse'
+        '400':
+          description: 'Недействительный запрос'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 'Внутренняя ошибка сервера'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Song:
+      type: 'object'
+      properties:
+        id:
+          type: 'integer'
+          format: 'int32'
+        group_name:
+          type: 'string'
+        song_name:
+          type: 'string'
+        release_date:
+          type: 'string'
+          format: 'date'
+        link:
+          type: 'string'
+      required:
+        - 'id'
+        - 'group_name'
+        - 'song_name'
+
+    VerseResponse:
+      type: 'object'
+      properties:
+        id:
+          type: 'integer'
+          format: 'int32'
+        verses:
+          type: 'array'
+          items:
+            type: 'string'
+      required:
+        - 'id'
+        - 'verses'
+
+    ErrorResponse:
+      type: 'object'
+      properties:
+        message:
+          type: 'string'
+      required:
+        - 'message'
