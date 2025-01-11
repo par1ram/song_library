@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-chi/chi"
 	"github.com/par1ram/song-library/common"
 	"github.com/par1ram/song-library/internal/database"
 	"github.com/sirupsen/logrus"
@@ -157,38 +156,47 @@ type PatchSongRequest struct {
 }
 
 func (cfg *ApiConfig) PatchSong(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
-	id, err := strconv.ParseInt(idParam, 10, 32)
-	if err != nil {
-		cfg.Logger.WithError(err).Error("Invalid song ID")
-		http.Error(w, "Invalid song ID", http.StatusBadRequest)
-		return
+	var req struct {
+		ID          int32   `json:"id"`
+		GroupID     *int32  `json:"group_id,omitempty"`
+		SongName    *string `json:"song_name,omitempty"`
+		Text        *string `json:"text,omitempty"`
+		ReleaseDate *string `json:"release_date,omitempty"`
+		Link        *string `json:"link,omitempty"`
 	}
 
-	var req PatchSongRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		cfg.Logger.WithError(err).Error("Invalid request body")
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	params := database.UpdateSongPartialParams{
-		ID:       int32(id),
-		GroupID:  *req.GroupID,
-		SongName: *req.SongName,
-		Text: sql.NullString{
-			String: *req.Text,
-			Valid:  req.Text != nil,
-		},
-		ReleaseDate: sql.NullTime{
-			Time:  parseDate(*req.ReleaseDate),
-			Valid: req.ReleaseDate != nil,
-		},
-		Link: sql.NullString{
-			String: *req.Link,
-			Valid:  req.Link != nil,
-		},
+	if req.ID <= 0 {
+		cfg.Logger.Error("Invalid song ID")
+		http.Error(w, "Invalid song ID", http.StatusBadRequest)
+		return
 	}
+
+	params := database.UpdateSongPartialParams{
+		ID: req.ID,
+	}
+
+	if req.GroupID != nil {
+		params.GroupID = *req.GroupID
+	}
+	if req.SongName != nil {
+		params.SongName = *req.SongName
+	}
+	if req.Text != nil {
+		params.Text = sql.NullString{String: *req.Text, Valid: true}
+	}
+	if req.ReleaseDate != nil {
+		params.ReleaseDate = sql.NullTime{Time: parseDate(*req.ReleaseDate), Valid: true}
+	}
+	if req.Link != nil {
+		params.Link = sql.NullString{String: *req.Link, Valid: true}
+	}
+
 	if err := cfg.DB.UpdateSongPartial(r.Context(), params); err != nil {
 		cfg.Logger.WithError(err).Error("Failed to update song")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -199,21 +207,35 @@ func (cfg *ApiConfig) PatchSong(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *ApiConfig) DeleteSong(w http.ResponseWriter, r *http.Request) {
+	cfg.Logger.Info("Starting to process delete song request")
+
 	songID, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil || songID <= 0 {
+		cfg.Logger.WithFields(logrus.Fields{
+			"song_id": songID,
+			"error":   err,
+		}).Error("Received invalid song ID")
 		common.RespondWithError(w, http.StatusBadRequest, "Invalid song ID")
 		return
 	}
 
+	cfg.Logger.WithField("song_id", songID).Debug("Attempting to delete song")
+
 	err = cfg.DB.DeleteSong(r.Context(), int32(songID))
 	if err != nil {
 		if err == sql.ErrNoRows {
+			cfg.Logger.WithField("song_id", songID).Warn("Song not found")
 			common.RespondWithError(w, http.StatusNotFound, "Song not found")
 			return
 		}
+		cfg.Logger.WithFields(logrus.Fields{
+			"song_id": songID,
+			"error":   err,
+		}).Error("Error deleting song from database")
 		common.RespondWithError(w, http.StatusInternalServerError, "Failed to delete song")
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	cfg.Logger.WithField("song_id", songID).Info("Song successfully deleted")
+	common.RespondWithJSON(w, http.StatusOK, map[string]string{"message": "Song successfully deleted"})
 }

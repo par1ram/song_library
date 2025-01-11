@@ -112,20 +112,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /songs/{id}:
+  /songs/patch:
     patch:
       tags:
         - 'CRUD'
       summary: 'Частично обновить данные песни'
       description: 'Позволяет обновить одно или несколько свойств песни по её ID.'
-      parameters:
-        - name: 'id'
-          in: 'path'
-          description: 'ID песни для обновления'
-          required: true
-          schema:
-            type: 'integer'
-            format: 'int32'
       requestBody:
         description: 'Данные для частичного обновления песни'
         required: true
@@ -133,7 +125,12 @@ paths:
           application/json:
             schema:
               type: 'object'
+              required:
+                - 'id'
               properties:
+                id:
+                  type: 'integer'
+                  format: 'int32'
                 group_id:
                   type: 'integer'
                   format: 'int32'
@@ -149,6 +146,10 @@ paths:
       responses:
         '200':
           description: 'Песня успешно обновлена'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Song'
         '400':
           description: 'Недействительный запрос'
           content:
@@ -183,8 +184,18 @@ paths:
             type: 'integer'
             format: 'int32'
       responses:
-        '204':
+        '200':
           description: 'Песня успешно удалена'
+          content:
+            application/json:
+              schema:
+                type: 'object'
+                properties:
+                  message:
+                    type: 'string'
+                    example: 'Song successfully deleted'
+                required:
+                  - 'message'
         '400':
           description: 'Недействительный запрос'
           content:
@@ -259,36 +270,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /songs/{id}/verses:
-    get:
+  /songs/verses:
+    post:
       tags:
         - 'Получение с фильтрацией'
       summary: 'Получить куплеты песни с пагинацией'
       description: 'Возвращает куплеты песни по заданному ID с возможностью пагинации.'
-      parameters:
-        - name: 'id'
-          in: 'path'
-          description: 'ID песни'
-          required: true
-          schema:
-            type: 'integer'
-            format: 'int32'
-        - name: 'limit'
-          in: 'query'
-          description: 'Количество куплетов для получения'
-          required: false
-          schema:
-            type: 'integer'
-            format: 'int32'
-            default: 10
-        - name: 'offset'
-          in: 'query'
-          description: 'Смещение для пагинации'
-          required: false
-          schema:
-            type: 'integer'
-            format: 'int32'
-            default: 0
+      requestBody:
+        description: 'Параметры для получения куплетов песни'
+        required: true
+        content:
+          application/json:
+            schema:
+              type: 'object'
+              required:
+                - 'id'
+              properties:
+                id:
+                  type: 'integer'
+                  format: 'int32'
+                limit:
+                  type: 'integer'
+                  format: 'int32'
+                  default: 10
+                offset:
+                  type: 'integer'
+                  format: 'int32'
+                  default: 0
       responses:
         '200':
           description: 'Куплеты успешно получены'

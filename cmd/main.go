@@ -54,12 +54,12 @@ func main() {
 	))
 
 	router.Post("/songs/filter", apiCfg.GetSongWithFiltersAndPagination)
-	router.Get("/songs/{id}/verses", apiCfg.GetSongVersesWithPagination)
+	router.Post("/songs/verses", apiCfg.GetSongVersesWithPagination)
 
 	router.Post("/songs/add", apiCfg.InsertSong)
 	router.Put("/songs/update", apiCfg.UpdateSong)
 	router.Delete("/songs/delete", apiCfg.DeleteSong)
-	router.Patch("/songs/{id}", apiCfg.PatchSong)
+	router.Patch("/songs/patch", apiCfg.PatchSong)
 
 	server := &http.Server{
 		Addr:           ":" + PORT,
